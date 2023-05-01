@@ -1,0 +1,62 @@
+version: '3.9'
+services:
+  zookeeper:
+    container_name: zookeeper
+    image: wurstmeister/zookeeper
+    ports:
+      - "2181:2181"
+
+  kafka:
+    container_name: kafka
+    image: wurstmeister/kafka
+    ports:
+      - "9092:9092"
+    volumes:
+      - ./data/kafka:/var/run/docker.sock
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://127.0.0.1:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    depends_on:
+      - zookeeper
+  mysql:
+    image: mysql
+    restart: always
+    # command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: mydb
+      MYSQL_USER: sadat
+      MYSQL_PASSWORD: 1234
+    ports:
+      - "3306:3306"
+    expose:
+      - 3306
+    volumes:
+      - mysql:/var/lib/mysql
+  app1:
+    build: ./app1
+    depends_on:
+      - mysql
+    ports:
+      - "3000:3000"
+    environment:
+      KAFKA_HOST: kafka:9092
+      MYSQL_HOST: mysql
+      MYSQL_USER: myuser
+      MYSQL_PASSWORD: mypassword
+      MYSQL_DATABASE: mydb
+  app2:
+    build: ./app2
+    depends_on:
+      - mysql
+    ports:
+      - "3001:3000"
+    environment:
+      KAFKA_HOST: kafka:9092
+      MYSQL_HOST: mysql
+      MYSQL_USER: myuser
+      MYSQL_PASSWORD: mypassword
+      MYSQL_DATABASE: mydb
+volumes:
+  mysql:
